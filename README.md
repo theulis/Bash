@@ -10,7 +10,7 @@ Add-Login-Item.sh
 A script that automatically adds specified applications to a user's login items (startup applications).
 The application is hard-coded, but we can simply add another path if needed
 
-## Add Login Item 
+## Cisco Secure Endpoint DMG to PKG for Kandji Installation
 
 ```
 Cisco-Secure-Endpoint-PKG.sh
