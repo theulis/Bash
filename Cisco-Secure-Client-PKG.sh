@@ -231,12 +231,6 @@ for module in "${FINAL_MODULES[@]}"; do
     done
 done
 
-# -----------------------------
-# Rebuild custom package
-# -----------------------------
-CUSTOM_PKG="CiscoSecureClient-Custom-$VERSION.pkg"
-pkgutil --flatten "$WORKDIR/expanded" "$WORKDIR/$CUSTOM_PKG"
-echo "✅ Custom installer created at $WORKDIR/$CUSTOM_PKG"
 
 # -----------------------------
 # ZIP final package (flattened)
