@@ -55,8 +55,8 @@ This Bash script automates the creation of custom Cisco Secure Client installati
 │   ├── Cisco_Secure_Access_Root_CA.cer
 │   ├── orgInfo.json
 │   └── ThousandEyes Endpoint Agent Configuration.json
-└── Cisco-Secure-Client-5.1.10.233/
-    └── cisco-secure-client-macos-5.1.10.233-predeploy-k9.dmg
+└── Cisco-Secure-Client-<version>/
+    └── cisco-secure-client-macos-<version>-predeploy-k9.dmg
 ```
 
 ### What It Does
