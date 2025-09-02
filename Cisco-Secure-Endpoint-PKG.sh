@@ -86,6 +86,9 @@ hdiutil attach $dmg_path >> /dev/null
 cp /Volumes/ampmac*/ciscoampmac*.pkg $pkg_folder >> /dev/null
 cp /Volumes/ampmac*/.policy.xml $pkg_folder >> /dev/null
 
+# Unmount the DMG - Suppressing output
+hdiutil detach /Volumes/ampmac* >> /dev/null
+
 # ZIP all files (excluding folders) from the PKG folder
 echo -e "📦 Creating ZIP file with all files from: ${RED}$pkg_folder${NC}"
 cd "$pkg_folder"
