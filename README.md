@@ -73,6 +73,27 @@ This Bash script automates the creation of custom Cisco Secure Client installati
 - Comma-separated selection for multiple modules
 - Confirmation step before proceeding
 
+**Example Menu Interface:**
+```
+================ Module Selection ================
+VPN and DART are always included.
+Select optional modules by typing numbers (comma-separated):
+1) Umbrella
+2) ThousandEyes
+3) ZeroTrust
+4) DUO
+==================================================
+Enter selection: 1,2,3
+
+You selected:
+ - VPN
+ - DART
+ - Umbrella
+ - ThousandEyes
+ - ZeroTrust
+Confirm? (y/n): y
+```
+
 #### 3. **Configuration File Management**
 - **VPN Module**: Requires `anyconnectOGS.xml`
 - **Umbrella Module**: Requires `orgInfo.json` and `Cisco_Secure_Access_Root_CA.cer`
@@ -89,7 +110,7 @@ This Bash script automates the creation of custom Cisco Secure Client installati
 - **Only processes selected modules** from the user's menu selection
 - Creates flattened `.pkg` files with `_flat.pkg` suffix
 - **Module Package Mappings**:
-  - `vpn_module.pkg` → `vpn_module_flat.pkg` (VPN module)
+  - `vpn_module.pkg` → `vpn_module_flat.pkg` (VPN module - always included)
   - `umbrella_module.pkg` → `umbrella_module_flat.pkg` (Umbrella module)
   - `thousandeyes_module.pkg` → `thousandeyes_module_flat.pkg` (ThousandEyes module)
   - `zta_module.pkg` → `zta_module_flat.pkg` (ZeroTrust module)
