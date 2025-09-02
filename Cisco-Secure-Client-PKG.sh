@@ -1,20 +1,41 @@
 #!/bin/bash
 
+# -----------------------------
 # Colors
+# -----------------------------
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
+BOLD='\033[1m'
 
-echo -e "${RED}${BOLD}ℹ️ Read the instruction below carefully and follow the steps${NC}"
-echo -e "⬇️ Download the latest Cisco Secure Client installer from the Cisco Secure Endpoint Portal"
-echo -e "Cisco Secure Client Pre-Deployment Package (Mac OS): cisco-secure-client-macos-<version>-predeploy-k9.dmg"
-echo -e "🌐 URL: https://software.cisco.com/download/home/286330811/ " 
-echo -e "📁 Add the Cisco Secure Client dmg installer under the folder Cisco-Secure-Client-App-DB/Cisco-Secure-Client-Version "
-echo -e "For example the full DMG path must be: ${RED}${BOLD}~/Cisco-Secure-Client-App-DB/Cisco-Secure-Client-5.1.10.233/cisco-secure-client-macos-5.1.10.233-predeploy-k9.dmg${NC}"
+# -----------------------------
+# User instructions
+# -----------------------------
+echo -e "${RED}${BOLD}ℹ️ Read the instructions carefully${NC}"
+echo -e "⬇️ Download the latest Cisco Secure Client installer (Mac OS) from the Cisco Portal"
+echo -e "🌐 URL: https://software.cisco.com/download/home/286330811/"
+echo -e "📁 Place the dmg installer under ${RED}${BOLD}~/Cisco-Secure-Client-App-DB/Cisco-Secure-Client-Version/${NC}"
+echo -e "Config files must be under ${RED}${BOLD}~/Cisco-Secure-Client-App-DB/Cisco-Secure-Client-Version/Configuration-Files/${NC}"
 
-## Function to check if the Cisco Secure Client Version format is valid
+# -----------------------------
+# User acknowledges
+# -----------------------------
+while true; do
+    echo -e "Type '${RED}${BOLD}continue${NC}' to proceed:"
+    read input
+    if [ "$input" = "continue" ]; then
+        echo "✅ Proceeding..."
+        break
+    else
+        echo "❌ Invalid input. Try again."
+    fi
+done
+
+# -----------------------------
+# Version input
+# -----------------------------
 is_valid_version() {
     local version="$1"
     if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
@@ -24,141 +45,271 @@ is_valid_version() {
     fi
 }
 
-read -p "Enter the Cisco Secure Client version (e.g., 5.1.10.233): " VERSION
-
+read -p "Enter Cisco Secure Client version (e.g., 5.1.10.233): " VERSION
 if ! is_valid_version "$VERSION"; then
-    echo "⚠️ Invalid version format. Use X.X.X or X.X.X.X (e.g., 5.1.10 or 5.1.10.233)"
+    echo "⚠️ Invalid version format"
+    exit 1
+fi
+echo -e "✅ Version format looks good: $VERSION"
+
+# -----------------------------
+# Config folder
+# -----------------------------
+CONFIG_DIR="$HOME/Cisco-Secure-Client-App-DB/Configuration-Files"
+
+# -----------------------------
+# Module file arrays
+# -----------------------------
+VPN_FILES=("$CONFIG_DIR/anyconnectOGS.xml")
+UMBRELLA_FILES=("$CONFIG_DIR/OrgInfo.json" "$CONFIG_DIR/Cisco_Secure_Access_Root_CA.cer")
+THOUSANDEYES_FILES=("$CONFIG_DIR/ThousandEyes Endpoint Agent Configuration.json")
+ZEROTRUST_FILES=()
+DART_FILES=()
+DUO_FILES=()
+
+# -----------------------------
+# Menu options
+# -----------------------------
+MENU_OPTIONS=("Umbrella" "ThousandEyes" "ZeroTrust" "DUO")
+
+# -----------------------------
+# Mandatory files check for VPN
+# -----------------------------
+echo "🔍 Checking mandatory configuration file(s) for VPN..."
+MISSING="false"
+for file in "${VPN_FILES[@]}"; do
+    if [[ -f "$file" ]]; then
+        echo -e "✅ Found VPN file: $file"
+    else
+        echo -e "❌ Missing VPN file: $file"
+        MISSING="true"
+    fi
+done
+if [[ "$MISSING" = "true" ]]; then
     exit 1
 fi
 
-echo "✅ Version format looks good: $VERSION"
-
-CONFIG_DIR="$HOME/Cisco-Secure-Client-App-DB/Configuration-Files"
-CONFIG_MODULES=("VPN" "Umbrella" "ThousandEyes")
-CONFIG_FILES=("anyconnectOGS.xml" "orgInfo.json" "ThousandEyes Endpoint Agent Configuration.json")
-
-echo "🔍 Checking configuration files in: $CONFIG_DIR"
-MISSING="false"
-
-for i in "${!CONFIG_MODULES[@]}"; do
-    MODULE="${CONFIG_MODULES[$i]}"
-    FILE="${CONFIG_FILES[$i]}"
-    FILE_PATH="$CONFIG_DIR/$FILE"
-
-    if [[ ! -f "$FILE_PATH" ]]; then
-        echo "❌ Missing config for $MODULE: $FILE"
-        MISSING="true"
-    else
-        echo "✅ Found config for $MODULE: $FILE"
+# -----------------------------
+# Interactive menu
+# -----------------------------
+FINAL_MODULES=("VPN" "DART")  # always included
+while true; do
+    clear
+    echo -e "${CYAN}================ Module Selection ================${NC}"
+    echo -e "${GREEN}VPN${NC} and ${GREEN}DART${NC} are always included."
+    echo "Select optional modules by typing numbers (comma-separated):"
+    for i in "${!MENU_OPTIONS[@]}"; do
+        echo -e "${YELLOW}$((i+1)))${NC} ${MENU_OPTIONS[$i]}"
+    done
+    echo -e "${CYAN}==================================================${NC}"
+    
+    read -p "Enter selection: " selection
+    IFS=',' read -ra choices <<< "$selection"
+    
+    TEMP_MODULES=("VPN" "DART")
+    for choice in "${choices[@]}"; do
+        choice=$(echo "$choice" | xargs)
+        if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#MENU_OPTIONS[@]} )); then
+            module="${MENU_OPTIONS[$((choice-1))]}"
+            TEMP_MODULES+=("$module")
+        else
+            echo -e "${RED}Invalid choice: $choice${NC}"
+        fi
+    done
+    
+    echo "You selected:"
+    for m in "${TEMP_MODULES[@]}"; do
+        echo " - $m"
+    done
+    read -p "Confirm? (y/n): " confirm
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+        FINAL_MODULES=("${TEMP_MODULES[@]}")
+        break
     fi
 done
 
-if [[ "$MISSING" == "true" ]]; then
-    echo "⚠️ One or more required configuration files are missing. Aborting."
+# -----------------------------
+# Check config files for selected modules
+# -----------------------------
+echo "🔍 Checking configuration files..."
+MISSING="false"
+for module in "${FINAL_MODULES[@]}"; do
+    case "$module" in
+        VPN) files=("${VPN_FILES[@]}") ;;
+        Umbrella) files=("${UMBRELLA_FILES[@]}") ;;
+        ThousandEyes) files=("${THOUSANDEYES_FILES[@]}") ;;
+        ZeroTrust) files=() ;;
+        DART) files=() ;;
+        DUO) files=() ;;
+    esac
+    
+    if [[ ${#files[@]} -eq 0 ]]; then
+        echo -e "ℹ️ No config files required for $module, skipping."
+        continue
+    fi
+    
+    for file in "${files[@]}"; do
+        if [[ -f "$file" ]]; then
+            echo -e "✅ Found file for $module: $file"
+        else
+            echo -e "❌ Missing file for $module: $file"
+            MISSING="true"
+        fi
+    done
+done
+
+if [[ "$MISSING" = "true" ]]; then
+    echo "⚠️ One or more required files are missing. Aborting."
     exit 1
 fi
 
-# Optional certificate check
-CERT_FILE="$CONFIG_DIR/Cisco_Secure_Access_Root_CA.cer"
-if [[ -f "$CERT_FILE" ]]; then
-    echo "✅ Found certificate file: $(basename "$CERT_FILE")"
-else
-    echo "ℹ️ Certificate file not found (optional): $(basename "$CERT_FILE")"
-fi
-
-CHOICES_XML="$CONFIG_DIR/install_choices.xml"
-if [[ ! -f "$CHOICES_XML" ]]; then
-    echo "❌ install_choices.xml file not found in $CONFIG_DIR"
-    exit 1
-fi
-echo "✅ Found install_choices.xml"
-
-# Check for DMG file
+# -----------------------------
+# Check DMG
+# -----------------------------
 DMG_DIR="$HOME/Cisco-Secure-Client-App-DB/Cisco-Secure-Client-$VERSION"
 DMG_FILE="cisco-secure-client-macos-$VERSION-predeploy-k9.dmg"
 DMG_PATH="$DMG_DIR/$DMG_FILE"
 
 if [[ ! -f "$DMG_PATH" ]]; then
-    echo "❌ Expected DMG file not found: $DMG_PATH"
+    echo "❌ DMG not found: $DMG_PATH"
     exit 1
 fi
-echo "✅ Found DMG file: $DMG_FILE"
+echo "✅ Found DMG: $DMG_FILE"
 
+# -----------------------------
 # Prepare working directories
+# -----------------------------
 WORKDIR="/tmp/cisco_secure_client_custom_$VERSION"
 MOUNTDIR="/Volumes/CiscoSecureClient"
-
 rm -rf "$WORKDIR"
 mkdir -p "$WORKDIR"
 
-# Mount the DMG
+# -----------------------------
+# Mount DMG
+# -----------------------------
 echo "🚀 Mounting DMG..."
 hdiutil attach "$DMG_PATH" -mountpoint "$MOUNTDIR" > /dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-    echo "❌ Failed to mount DMG: $DMG_PATH"
+    echo "❌ Failed to mount DMG"
     exit 1
 fi
 
-# Find the .pkg inside mounted DMG
+# Find .pkg inside DMG
 PKG_SOURCE=$(find "$MOUNTDIR" -name "*.pkg" | head -n 1)
 if [[ -z "$PKG_SOURCE" ]]; then
-    echo "❌ No .pkg found inside mounted DMG."
+    echo "❌ No .pkg found inside DMG"
     hdiutil detach "$MOUNTDIR" > /dev/null 2>&1
     exit 1
 fi
 echo "✅ Found pkg: $PKG_SOURCE"
 
-# Expand the installer package
-echo "🚀 Expanding installer package..."
+# -----------------------------
+# Expand package
+# -----------------------------
+echo "🚀 Expanding package..."
 pkgutil --expand "$PKG_SOURCE" "$WORKDIR/expanded"
-
-# Unmount the DMG
 hdiutil detach "$MOUNTDIR" > /dev/null 2>&1
 
-# Copy config files, cert, choices.xml into expanded pkg
-cp "$CONFIG_DIR/anyconnectOGS.xml" "$WORKDIR/expanded/"
-cp "$CONFIG_DIR/orgInfo.json" "$WORKDIR/expanded/"
-cp "$CONFIG_DIR/ThousandEyes Endpoint Agent Configuration.json" "$WORKDIR/expanded/"
-cp "$CHOICES_XML" "$WORKDIR/expanded/"
-if [[ -f "$CERT_FILE" ]]; then
-    cp "$CERT_FILE" "$WORKDIR/expanded/"
+# -----------------------------
+# Copy selected module files into expanded pkg
+# -----------------------------
+for module in "${FINAL_MODULES[@]}"; do
+    pkgname="$(echo "$module" | tr '[:upper:]' '[:lower:]')_module_flat.pkg"
+    case "$module" in
+        VPN) files=("${VPN_FILES[@]}") ;;
+        Umbrella) files=("${UMBRELLA_FILES[@]}") ;;
+        ThousandEyes) files=("${THOUSANDEYES_FILES[@]}") ;;
+        ZeroTrust) files=() ;;
+        DART) files=() ;;
+        DUO) files=() ;;
+    esac
+    
+    # Copy config files (if any)
+    for file in "${files[@]}"; do
+        cp "$file" "$WORKDIR/expanded/"
+        echo "✅ Copied $file"
+    done
+done
+
+# -----------------------------
+# Rebuild custom package
+# -----------------------------
+CUSTOM_PKG="CiscoSecureClient-Custom-$VERSION.pkg"
+pkgutil --flatten "$WORKDIR/expanded" "$WORKDIR/$CUSTOM_PKG"
+echo "✅ Custom installer created at $WORKDIR/$CUSTOM_PKG"
+
+# -----------------------------
+# ZIP final package (flattened)
+# -----------------------------
+
+STAGING="$WORKDIR/staging"
+mkdir -p "$STAGING"
+
+
+# Copy ALL configuration files to staging
+for module in "${FINAL_MODULES[@]}"; do
+    case "$module" in
+        VPN) files=("${VPN_FILES[@]}") ;;
+        Umbrella) files=("${UMBRELLA_FILES[@]}") ;;
+        ThousandEyes) files=("${THOUSANDEYES_FILES[@]}") ;;
+        ZeroTrust|DART|DUO) files=() ;;
+    esac
+    for file in "${files[@]}"; do
+        cp "$file" "$STAGING/"
+    done
+done
+
+# Copy and flatten module packages based on selection
+cd "$WORKDIR/expanded" || exit 1
+
+# Always include DART module
+if [[ -d "dart_module.pkg" ]]; then
+    echo "📦 Flattening dart_module.pkg..."
+    pkgutil --flatten "dart_module.pkg" "$STAGING/dart_module_flat.pkg"
 fi
 
-# Rebuild the custom package
-CUSTOM_PKG_NAME="CiscoSecureClient-Custom-$VERSION.pkg"
-CUSTOM_PKG_PATH="$WORKDIR/$CUSTOM_PKG_NAME"
+# Copy selected module packages (only those selected from menu)
+for module in "${FINAL_MODULES[@]}"; do
+    case "$module" in
+        VPN)
+            if [[ -d "vpn_module.pkg" ]]; then
+                echo "📦 Flattening vpn_module.pkg..."
+                pkgutil --flatten "vpn_module.pkg" "$STAGING/vpn_module_flat.pkg"
+            fi
+            ;;
+        Umbrella)
+            if [[ -d "umbrella_module.pkg" ]]; then
+                echo "📦 Flattening umbrella_module.pkg..."
+                pkgutil --flatten "umbrella_module.pkg" "$STAGING/umbrella_module_flat.pkg"
+            fi
+            ;;
+        ThousandEyes)
+            if [[ -d "thousandeyes_module.pkg" ]]; then
+                echo "📦 Flattening thousandeyes_module.pkg..."
+                pkgutil --flatten "thousandeyes_module.pkg" "$STAGING/thousandeyes_module_flat.pkg"
+            fi
+            ;;
+        ZeroTrust)
+            if [[ -d "zta_module.pkg" ]]; then
+                echo "📦 Flattening zta_module.pkg..."
+                pkgutil --flatten "zta_module.pkg" "$STAGING/zta_module_flat.pkg"
+            fi
+            ;;
+        DUO)
+            if [[ -d "duo_module.pkg" ]]; then
+                echo "📦 Flattening duo_module.pkg..."
+                pkgutil --flatten "duo_module.pkg" "$STAGING/duo_module_flat.pkg"
+            fi
+            ;;
+    esac
+done
 
-echo "🚀 Rebuilding custom package..."
-pkgutil --flatten "$WORKDIR/expanded" "$CUSTOM_PKG_PATH"
-if [[ $? -ne 0 ]]; then
-    echo "❌ Failed to rebuild the custom package."
-    exit 1
-fi
-echo "✅ Custom installer created at: $CUSTOM_PKG_PATH"
-
-# Prepare flat staging directory for zip
-STAGING_DIR="$WORKDIR/staging"
-mkdir -p "$STAGING_DIR"
-
-# Move the custom pkg into staging
-mv "$CUSTOM_PKG_PATH" "$STAGING_DIR/"
-
-# Copy all config files and optional cert
-cp "$CONFIG_DIR/anyconnectOGS.xml" "$STAGING_DIR/"
-cp "$CONFIG_DIR/orgInfo.json" "$STAGING_DIR/"
-cp "$CONFIG_DIR/ThousandEyes Endpoint Agent Configuration.json" "$STAGING_DIR/"
-cp "$CHOICES_XML" "$STAGING_DIR/"
-if [[ -f "$CERT_FILE" ]]; then
-    cp "$CERT_FILE" "$STAGING_DIR/"
-fi
-
-# Create the zip archive with flat structure
-cd "$STAGING_DIR" || exit 1
+cd "$STAGING" || exit 1
 ZIP_NAME="CiscoSecureClient-Custom-$VERSION.zip"
-zip -r "$DMG_DIR/$ZIP_NAME" . > /dev/null
 
-# Clean up
-echo "🧹 Cleaning up..."
+# Create flattened ZIP with all files
+zip -j "$DMG_DIR/$ZIP_NAME" ./* > /dev/null
+
+# Cleanup
 rm -rf "$WORKDIR"
-
 echo "✅ Custom installer zip created at: $DMG_DIR/$ZIP_NAME"
