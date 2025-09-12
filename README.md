@@ -174,4 +174,17 @@ duo_module_flat.pkg
 This script provides a professional, controlled way to create custom Cisco Secure Client packages tailored to specific deployment requirements while maintaining clean, organized output structures.
 
 
+# WiFi-Restart
 
+
+```
+WiFi-Restart.sh
+```
+
+🔌 A simple macOS shell script that restarts Wi-Fi by turning it **off**, waiting briefly, and turning it **back on again**.  
+🚀 This can sometimes help when the device struggles with roaming or staying connected.
+
+⚠️ **Note:**  
+Apple has deprecated the `airport` command-line tool and is slowly restricting CLI access to Wi-Fi information.  
+This script still works to toggle Wi-Fi, but **displaying the connected SSID may not be reliable anymore**.  
+For diagnostics, Apple now recommends using **Wireless Diagnostics (`wdutil`)**, but it does not provide a direct replacement for all `airport` features.
