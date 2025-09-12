@@ -188,3 +188,26 @@ WiFi-Restart.sh
 Apple has deprecated the `airport` command-line tool and is slowly restricting CLI access to Wi-Fi information.  
 This script still works to toggle Wi-Fi, but **displaying the connected SSID may not be reliable anymore**.  
 For diagnostics, Apple now recommends using **Wireless Diagnostics (`wdutil`)**, but it does not provide a direct replacement for all `airport` features.
+
+
+## Export Network Logs
+A Bash script that collects macOS networking-related logs from multiple system processes and subsystems, then packages them into a single ZIP file for troubleshooting.
+
+### Key Features
+
+- Collects logs from:
+  - `mDNSResponder` (DNS events)
+  - `configd` (network configuration)
+  - `networkd` (interface and routing)
+  - `airportd` (Wi-Fi daemon)
+  - VPN processes
+  - DHCP events
+  - Umbrella and other DNS-related logs
+  - Network Extension and SystemConfiguration subsystems
+  - Symptomsd (network health monitoring)
+  - com.apple.network connection events
+- Progress messages displayed in the terminal with emojis and color coding
+- Safe temporary folder handling
+- Exports all logs into a **single ZIP file** in `~/Desktop/SysLogs`
+- Informs the user about file location and expected runtime (10–15 minutes)
+- Cleans up temporary folders after archiving
