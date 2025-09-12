@@ -7,6 +7,7 @@
 # Exported logs will be saved in ~/Downloads/SysLogs as individual files and a zipped archive.
 
 RED='\033[31m'    # Red text
+RED_BOLD='\033[1;31m' #Red Bold
 GREEN='\033[32m'  # Green text
 YELLOW='\033[33m' # Yellow text
 RESET='\033[0m'   # Reset color
@@ -66,14 +67,14 @@ echo "✅ Collected symptomsd logs (network health)."
 /usr/bin/log show --last 8h --predicate 'subsystem == "com.apple.network" AND category == "connection"' > /Users/Shared/SysLogs/subsystem_com.apple.network.log
 echo "✅ Collected com.apple.network connection logs."
 
-# --- Create a zipped archive of all logs ---
-echo "📦 Creating a zip archive of all logs..."
-/usr/bin/zip -r ~/Desktop/SysLogs/verbose-logs-$USER-"$(date +%Y-%m-%d_%H-%M-%S)".zip /Users/Shared/SysLogs/ > /dev/null
+# Create zip quietly
+/usr/bin/zip -r "$ZIP_FILE" /Users/Shared/SysLogs/* > /dev/null
 
-# --- Cleanup temporary folder ---
-/bin/rm -rf /Users/Shared/SysLogs
-
-# --- Final user notification ---
-echo -e "${GREEN}🎉 Network log collection complete!${RESET}"
-echo -e "${YELLOW}📂 Your logs are now available in the ZIP file:${RESET}"
-echo -e "${RED}   $ZIP_FILE${RESET}"
+# Success message
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}🎉 All network logs have been collected and saved!${RESET}"
+    echo -e "${GREEN}📂 You can find the Compressed ZIP file with all the Network logs in your Downloads folder:${RESET}"
+    echo -e "${RED_BOLD}$ZIP_FILE${RESET}"
+else
+    echo -e "${RED_BOLD}❌ Failed to create the ZIP archive. Please check /Users/Shared/SysLogs exists and contains logs.${RESET}"
+fi
