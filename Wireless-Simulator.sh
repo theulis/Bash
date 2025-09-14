@@ -37,7 +37,7 @@ NOW=$(date "+%Y-%m-%d_%H-%M-%S")
 RESULTS="$HOME/Desktop/WiFiTestResults_${SERIAL}_${NOW}.csv"
 
 # 🔹 CSV header
-header="Timestamp,IP Address,Default Gateway,Primary DNS,Secondary DNS,Google_Status,Google_RTT,PrimaryDNS_Status,PrimaryDNS_RTT,SecondaryDNS_Status,SecondaryDNS_RTT,Apple_Status,Apple_RTT,Cloudflare_Status,Cloudflare_RTT"
+header="Timestamp,IP Address,Default Gateway,Primary DNS,Secondary DNS,Google_Status,Google_RTT,PrimaryDNS_Status,PrimaryDNS_RTT,SecondaryDNS_Status,SecondaryDNS_RTT,Apple_Status,Apple_RTT,Cloudflare_Status,Cloudflare_RTT,Chrome_Installer_Download_FileSize(MB),Download_Speed(Mbps),Download_Time(sec)"
 echo "$header" > "$RESULTS"
 
 # 🔹 Run iterations
@@ -114,6 +114,30 @@ for ((iter=1; iter<=iterations; iter++)); do
         ping_statuses+=("$status")
         ping_rtts+=("$avg_rtt")
     done
+        # 🔹 File Download Test (Google Chrome DMG)
+
+        echo -e "${BLUE}🔵 Downloading the Google Chrome DMG from the Official Page...${NC}"   
+
+        download_log=$(curl --output ~/Downloads/googlechrome.dmg \
+            -w "%{size_download},%{speed_download},%{time_total}" \
+            -s https://dl.google.com/chrome/mac/universal/stable/GGRO/googlechrome.dmg)
+
+        # Parse results
+        file_size=$(echo "$download_log" | awk -F',' '{print $1}')
+        speed_bps=$(echo "$download_log" | awk -F',' '{print $2}')
+        time_total=$(echo "$download_log" | awk -F',' '{print $3}')
+
+        # Convert values
+        file_size_mb=$(echo "scale=2; $file_size / 1000000" | bc)    # MB
+        speed_mbps=$(echo "scale=2; ($speed_bps * 8) / 1000000" | bc) # Mbps
+
+        echo -e "${GREEN}✅ Downloaded $file_size_mb MB at $speed_mbps Mbps in $time_total sec. Clearing the download file...${NC}"
+        # Cleanup
+        rm -f ~/Downloads/googlechrome.dmg
+        random_time=$((RANDOM % 100 + 10))
+        echo -e "${BLUE}🔵 Waiting $random_time seconds until the next download...${NC}"
+        sleep $random_time
+ 
 
     # 🔹 Write CSV line
     TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
@@ -121,6 +145,9 @@ for ((iter=1; iter<=iterations; iter++)); do
     for idx in "${!ping_statuses[@]}"; do
         line+=","${ping_statuses[$idx]}","${ping_rtts[$idx]}
     done
+
+    # Add download stats
+    line+=",$file_size_mb,$speed_mbps,$time_total"
 
     echo "$line" >> "$RESULTS"
     echo -e "${BLUE}🔵 Iteration $iter completed${NC}"
