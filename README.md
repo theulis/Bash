@@ -211,3 +211,48 @@ A Bash script that collects macOS networking-related logs from multiple system p
 - Exports all logs into a **single ZIP file** in `~/Desktop/SysLogs`
 - Informs the user about file location and expected runtime (10–15 minutes)
 - Cleans up temporary folders after archiving
+
+
+# Wi-Fi & Download Performance Test Script for macOS
+
+This Bash script automates Wi-Fi testing on macOS and measures download performance for large files. It collects network statistics, pings multiple destinations, downloads files from official sources, and saves the results to a CSV on the desktop.
+
+```
+Wireless-Simulator.sh
+```
+
+## Features
+
+- **Wi-Fi Testing**  
+  - Disconnects and reconnects the Wi-Fi interface per iteration.
+  - Captures IP address, default gateway, and DNS servers.
+
+- **Ping Test**  
+  - Pings multiple destinations:
+    - Google DNS (8.8.8.8)
+    - Primary & secondary DNS
+    - `apple.com`
+    - `cloudflare.com`
+  - Measures success rate and average round-trip time (RTT).
+  - Adds visual indicators for RTT (`✅` for <100ms, `⚠️` for higher latency).
+
+- **File Download Test**  
+  - Downloads **Google Chrome DMG** and **Zoom IT PKG**.
+  - Measures file size, download speed (Mbps), and total download time (seconds).
+  - Optionally waits a random interval between downloads if there are multiple iterations.
+  - Cleans up downloaded files after each iteration.
+
+- **CSV Logging**  
+  - Saves results to a CSV file on the desktop with a timestamp and Mac serial number.
+  - Columns include:
+    - Timestamp, IP Address, Gateway, DNS
+    - Ping statuses and RTTs for all destinations
+    - Chrome and Zoom download metrics (file size, speed, time)
+
+- **Interactive Confirmation**  
+  - Prompts the user to confirm that no Ethernet cable is connected before running.
+  - Requires positive integer input for number of iterations.
+
+- **User-Friendly Output**  
+  - Uses colored messages for status, warnings, and progress.
+  - Shows iteration progress and download statistics in real time.

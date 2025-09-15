@@ -22,7 +22,7 @@ done
 
 # 🔹 Ask user number of iterations
 while true; do
-    echo -e "${YELLOW}⚠️  Each Wi-Fi test may take up to 10-15 mins${NC}"
+    echo -e "${YELLOW}⚠️  Depending on the Download Speed each Wi-Fi test may take from a couple to several minutes${NC}"
     read -p "$(echo -e "${BLUE}Enter the number of Wi-Fi Tests: ${NC}")" iterations
     if [[ "$iterations" =~ ^[1-9][0-9]*$ ]]; then break; fi
     echo -e "${RED}❌ Please enter a valid positive integer.${NC}"
@@ -37,7 +37,11 @@ NOW=$(date "+%Y-%m-%d_%H-%M-%S")
 RESULTS="$HOME/Desktop/WiFiTestResults_${SERIAL}_${NOW}.csv"
 
 # 🔹 CSV header
-header="Timestamp,IP Address,Default Gateway,Primary DNS,Secondary DNS,Google_Status,Google_RTT,PrimaryDNS_Status,PrimaryDNS_RTT,SecondaryDNS_Status,SecondaryDNS_RTT,Apple_Status,Apple_RTT,Cloudflare_Status,Cloudflare_RTT,Chrome_Installer_Download_FileSize(MB),Download_Speed(Mbps),Download_Time(sec)"
+header="Serial_Number,Timestamp,IP Address,Default Gateway,Primary DNS,Secondary DNS,\
+Google_Status,Google_RTT,PrimaryDNS_Status,PrimaryDNS_RTT,SecondaryDNS_Status,SecondaryDNS_RTT,\
+Apple_Status,Apple_RTT,Cloudflare_Status,Cloudflare_RTT,\
+Chrome_FileSize(MB),Chrome_Speed(Mbps),Chrome_Time(sec),\
+Zoom_FileSize(MB),Zoom_Speed(Mbps),Zoom_Time(sec)"
 echo "$header" > "$RESULTS"
 
 # 🔹 Run iterations
@@ -125,29 +129,59 @@ for ((iter=1; iter<=iterations; iter++)); do
         # Parse results
         file_size=$(echo "$download_log" | awk -F',' '{print $1}')
         speed_bps=$(echo "$download_log" | awk -F',' '{print $2}')
-        time_total=$(echo "$download_log" | awk -F',' '{print $3}')
+        time_total_google=$(echo "$download_log" | awk -F',' '{print $3}')
 
         # Convert values
-        file_size_mb=$(echo "scale=2; $file_size / 1000000" | bc)    # MB
-        speed_mbps=$(echo "scale=2; ($speed_bps * 8) / 1000000" | bc) # Mbps
+        file_size_mb_google=$(echo "scale=2; $file_size / 1000000" | bc)    # MB
+        speed_mbp_google=$(echo "scale=2; ($speed_bps * 8) / 1000000" | bc) # Mbps
 
-        echo -e "${GREEN}✅ Downloaded $file_size_mb MB at $speed_mbps Mbps in $time_total sec. Clearing the download file...${NC}"
+        echo -e "${GREEN}✅ Downloaded $file_size_mb_google MB at $speed_mbp_google Mbps in $time_total_google sec. Clearing the download file...${NC}"
         # Cleanup
         rm -f ~/Downloads/googlechrome.dmg
         random_time=$((RANDOM % 100 + 10))
         echo -e "${BLUE}🔵 Waiting $random_time seconds until the next download...${NC}"
         sleep $random_time
- 
+
+
+        # 🔹 File Download Test (Zoom)
+
+        echo -e "${BLUE}🔵 Downloading the Zoom IT PKG from the Official Page...${NC}"   
+
+        download_log_zoom=$(
+        curl -L -o ~/Downloads/ZoomInstallerIT.pkg \
+            -w "%{size_download},%{speed_download},%{time_total}" \
+            -sS https://zoom.us/client/latest/ZoomInstallerIT.pkg
+        )
+
+        # Parse results
+        file_size=$(echo "$download_log_zoom" | awk -F',' '{print $1}')
+        speed_bps=$(echo "$download_log_zoom" | awk -F',' '{print $2}')
+        time_total_zoom=$(echo "$download_log_zoom" | awk -F',' '{print $3}')
+
+        # Convert values
+        file_size_mb_zoom=$(echo "scale=2; $file_size / 1000000" | bc)    # MB
+        speed_mbp_zoom=$(echo "scale=2; ($speed_bps * 8) / 1000000" | bc) # Mbps
+
+        echo -e "${GREEN}✅ Downloaded $file_size_mb_zoom MB at $speed_mbp_zoom Mbps in $time_total_zoom sec. Clearing the download file...${NC}"
+        # Cleanup
+        rm -f ~/Downloads/ZoomInstallerIT.pkg
+        # Only sleep if not the last iteration
+        if [[ $iter -lt $iterations ]]; then
+            random_time=$((RANDOM % 100 + 10))
+            echo -e "${BLUE}🔵 Waiting $random_time seconds until the next download...${NC}"
+            sleep $random_time
+        fi
 
     # 🔹 Write CSV line
     TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
-    line="$TIMESTAMP,$ip_address,$default_gateway,$primary_dns,$secondary_dns"
+    line="$SERIAL,$TIMESTAMP,$ip_address,$default_gateway,$primary_dns,$secondary_dns"
     for idx in "${!ping_statuses[@]}"; do
         line+=","${ping_statuses[$idx]}","${ping_rtts[$idx]}
     done
 
     # Add download stats
-    line+=",$file_size_mb,$speed_mbps,$time_total"
+    line+=",$file_size_mb_google,$speed_mbp_google,$time_total_google,$file_size_mb_zoom,$speed_mbp_zoom,$time_total_zoom"
+
 
     echo "$line" >> "$RESULTS"
     echo -e "${BLUE}🔵 Iteration $iter completed${NC}"
